@@ -21,7 +21,7 @@ using namespace std;
 const int V_WIDTH = 640;
 const int V_HEIGHT = 480;
 int H_MIN = 0;
-int H_MAX = 179;
+int H_MAX = 255;// 179;
 int S_MIN = 0;
 int S_MAX = 255;
 int V_MIN = 0;
@@ -64,7 +64,7 @@ void newHandTracking();
 		void colorDetect() {};
 		void showMenu() {};
 		void handTracking();
-
+		void detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold);
 
 void applyOption() {
 
@@ -87,7 +87,9 @@ void applyOption() {
 	default:
 		//showMenu();
 		//detectObject();
-		handTracking();
+		
+		newHandTracking();
+		//handTracking();
 		break;
 	}
 
@@ -552,9 +554,14 @@ void detectObject() {
 void handTracking() {
 	Mat hsv, threshold;
 	cvtColor(currentFrame, hsv, COLOR_BGR2HSV);
+	Scalar lowerSkin = Scalar(0, 36, 83);
+	Scalar upperSkin = Scalar(179, 151, 228);
+
+//	inRange(hsv, lowerSkin, upperSkin, threshold);
 	inRange(hsv, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), threshold);
 
-	Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
+///*
+Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
 	Mat dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
 
 	erode(threshold, threshold, erodeElement);
@@ -562,9 +569,21 @@ void handTracking() {
 	erode(threshold, threshold, erodeElement);
 	dilate(threshold, threshold, dilateElement);
 
+
+// */
+ /*
+	erodeElement = getStructuringElement(MORPH_RECT, Size(6, 6));
+	//dilate with larger element so make sure object is nicely visible
+	dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
+	erode(threshold, threshold, erodeElement);
+	dilate(threshold, threshold, dilateElement);
+//*/
+
 	std::vector< std::vector<Point> > contours;
 	std::vector<Vec4i> hierarchy;
-	findContours(threshold, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	Mat temp;
+	threshold.copyTo(temp);
+	findContours(temp, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
 
 	bool objectFound = false;
 	int numObjects = hierarchy.size();
@@ -573,37 +592,102 @@ void handTracking() {
 	int x, y;
 	int MIN_OBJECT_AREA = 20 * 20;
 	int MAX_OBJECT_AREA = 50 * 50;
+	Point2f c;
+	float r;
+	float maxR = 0;
+	vector<Point> maxContours;
+	
 	if (numObjects > 0) {
 		for (int i = 0; i >= 0; i = hierarchy[i][0]) {
-			Moments moment = moments((cv::Mat)contours[i]);
-			double area = moment.m00;
-			if (maxArea < area) {
-				maxArea = area;
-				max = moment;
+			minEnclosingCircle(contours[i], c, r);
+			if (r > maxR) {
+				maxR = r;
+				maxContours = contours[i];
 			}
 		}
+		if (maxR > 0) {
+			detectFingest(maxContours, c, r, threshold);
+		}
 
-		double area = max.m00;
-
-		//if (area>MIN_OBJECT_AREA && area<MAX_OBJECT_AREA) {
-			x = max.m10 / area;
-			y = max.m01 / area;
-		//	objectFound = true;
-			imshow("prev", threshold);
-			circle(currentFrame, Point(x, y), 30, Scalar(0, 255, 0), 1);
-	//	}
-	//	else objectFound = false;
-
-
-		//		}
-		//let user know you found an object
-//		if (objectFound == true) {
+//			Moments moment = moments((cv::Mat)contours[i]);
+//			double area = moment.m00;
+//			if (maxArea < area) {
+//				maxArea = area;
+//				max = moment;
+//			}
+//		}
+//
+//		double area = max.m00;
+//
+//		if (area > MIN_OBJECT_AREA && area < MAX_OBJECT_AREA) {
+//			x = max.m10 / area;
+//			y = max.m01 / area;
 //			circle(currentFrame, Point(x, y), 30, Scalar(0, 255, 0), 1);
 //		}
-
-		//}
-		//	else putText(cameraFeed, "TOO MUCH NOISE! ADJUST FILTER", Point(0, 50), 1, 2, Scalar(0, 0, 255), 2);
 	}
+	imshow("prev", threshold);
+}
+
+void detectFingest( vector<Point> contours, Point2f c, float r, Mat threshold) {
+
+//	cv::minEnclosingCircle(contours, c, r);
+	// srodek 0r
+	Vec3b lastColor, currentColor;
+	Scalar blue = Scalar( 255, 0, 0);
+	Scalar green = Scalar(0, 255, 0);
+	Scalar red = Scalar(0, 0, 255);
+
+	int objectsPerLine = 0;
+//	for (int x = c.x - r; x < c.x + r; x++) {
+//		currentColor = threshold.at<cv::Vec3b>(c.y, x);
+//		if (lastColor[0] == 0.0 && currentColor[0] == 255.0) {
+//			objectsPerLine++;
+//		}
+//		lastColor = currentColor;
+//	}
+//	if (objectsPerLine > 2) {
+//		circle(currentFrame, c, r, green, 3);		
+//	}
+//	objectsPerLine = 0;
+	// nadgarstek -0.5r
+//	for (int x = c.x - r; x < c.x + r; x++) {
+//		currentColor = threshold.at<cv::Vec3b>(c.y - r / 2, x);
+//		if (lastColor[0] == 0.0 && currentColor[0] == 255.0) {
+//			objectsPerLine++;
+//		}
+//		lastColor = currentColor;
+//	}
+//	if (objectsPerLine > 1) {
+//		circle(currentFrame, c, r, blue, 3);
+//		return;
+//	}
+	// palce 0.5r
+	vector<Point> fingers;
+	objectsPerLine = 0;
+	Point overObject = Point(0,0);
+	for (int x = c.x - r; x < c.x + r; x++) {
+	for (int y = c.y - r; y < c.y; y++) {
+		
+			currentColor = threshold.at<cv::Vec3b>(c.y - 0.75 * r, x);
+			if (lastColor[0] == 0.0 && currentColor[0] == 255.0) {
+				overObject = Point(x, y);
+				//circle(threshold, Point(x, y), 1, blue, 1);
+			}
+			if (lastColor[0] == 255.0 && currentColor[0] == 0.0 && overObject.x > 0) {
+	//			std::cout << x <<" "<< y << " " << overObject << endl;
+//				circle(currentFrame, Point( x - abs(x - overObject.x)/2, y), 1, blue, 3);
+				circle(currentFrame, Point(x, y), 1, red, 1);
+				objectsPerLine++;
+				overObject = Point(0, 0);
+			}
+			lastColor = currentColor;
+		}
+		overObject = Point(0, 0);
+		lastColor = Vec3b(0,0,0);
+	}
+	circle(currentFrame, c, r, red, 3);
+//	line(currentFrame, Point(c.x - r, c.y - r / 2), Point(c.x * r, c.y - r / 2), blue);
+	std::cout << "Wykrylem " << objectsPerLine << " palcow" << endl;
 }
 
 void detectContours()
@@ -655,6 +739,15 @@ void createOptionsWindow() {
 	createTrackbar("S_MAX", optionsWindow, &S_MAX, S_MAX, on_trackbar);
 	createTrackbar("V_MIN", optionsWindow, &V_MIN, V_MAX, on_trackbar);
 	createTrackbar("V_MAX", optionsWindow, &V_MAX, V_MAX, on_trackbar);
+
+		Scalar lowerSkin = Scalar(0, 82, 144);
+		Scalar upperSkin = Scalar(44, 159, 211);
+		setTrackbarPos("H_MIN", optionsWindow, lowerSkin[0]);
+		setTrackbarPos("S_MIN", optionsWindow, lowerSkin[1]);
+		setTrackbarPos("V_MIN", optionsWindow, lowerSkin[2]);
+		setTrackbarPos("H_MAX", optionsWindow, upperSkin[0]);
+		setTrackbarPos("S_MAX", optionsWindow, upperSkin[1]);
+		setTrackbarPos("V_MAX", optionsWindow, upperSkin[2]);
 
 }
 
