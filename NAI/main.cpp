@@ -1,4 +1,3 @@
-
 #include "stdafx.h"
 
 #include "opencv2/core/utility.hpp"
@@ -11,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "opencv2/objdetect.hpp"
+
 
 
 using namespace cv;
@@ -127,7 +127,7 @@ void faceDetect() {
 	
 		// Detect faces
 		haar_cascade.detectMultiScale(image_grey, found);// , scaleStep, groundThreshold, 0, minimalObjectSize, maximalObjectSize);
- /*
+  /*
 		if (found.size() > 0) {
 			for (int i = 0; i <= 2; i++) {
 				rectangle(prev, found[i].br(), found[i].tl(), Scalar(0, 0, 0), 1, 8, 0);
@@ -197,4 +197,4 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-
+// */
