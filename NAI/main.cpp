@@ -51,20 +51,21 @@ void skinMask();
 void colorTest();
 void newHandTracking();
 
-		
-		const int MAX_NUM_OBJECTS = 30;
-		const int MIN_OBJECT_AREA = 20 * 20;
-		const int MAX_OBJECT_AREA = 200 * 200;
-		bool isObjectDetected = false;
+
+const int MAX_NUM_OBJECTS = 30;
+const int MIN_OBJECT_AREA = 20 * 20;
+const int MAX_OBJECT_AREA = 200 * 200;
+bool isObjectDetected = false;
 
 
-		void detectContours();
-		void detectObject();
-		void substractMove() {};
-		void colorDetect() {};
-		void showMenu() {};
-		void handTracking();
-		void detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold);
+void detectContours();
+void detectObject();
+void substractMove() {};
+void colorDetect() {};
+void showMenu() {};
+void handTracking();
+void detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold);
+Mat applyMask();
 
 void applyOption() {
 
@@ -87,9 +88,8 @@ void applyOption() {
 	default:
 		//showMenu();
 		//detectObject();
-		
-		newHandTracking();
-		//handTracking();
+
+		handTracking();
 		break;
 	}
 
@@ -458,22 +458,22 @@ void detectObject() {
 	int minH = 179, maxH = 0, minS = 255, maxS = 0, minV = 255, maxV = 0;
 	if (!isObjectDetected) {
 
-//		if (pixelsH.size() < 200) {
+		//		if (pixelsH.size() < 200) {
 
-			/* area pipe
-			std::vector<Point> contours;
-			contours.push_back(Point(230, 230));
-			contours.push_back(Point(230, 280));
-			contours.push_back(Point(280, 230));
-			contours.push_back(Point(280, 280));
-			Mat pipeArea(currentFrame.clone());
-			drawContours(pipeArea, contours, -1, Scalar(255, 255, 255));
-			imshow("test",pipeArea);
-			*/
+		/* area pipe
+		std::vector<Point> contours;
+		contours.push_back(Point(230, 230));
+		contours.push_back(Point(230, 280));
+		contours.push_back(Point(280, 230));
+		contours.push_back(Point(280, 280));
+		Mat pipeArea(currentFrame.clone());
+		drawContours(pipeArea, contours, -1, Scalar(255, 255, 255));
+		imshow("test",pipeArea);
+		*/
 
 
-//		int minH = 179, maxH = 0, minS = 255, maxS = 0, minV = 255, maxV = 0;
-			
+		//		int minH = 179, maxH = 0, minS = 255, maxS = 0, minV = 255, maxV = 0;
+
 		for (int x = V_WIDTH / 2 - 20; x < V_WIDTH / 2 + 20; x++) {
 			for (int y = V_HEIGHT / 2 - 20; y < V_HEIGHT / 2 + 20; y++) {
 				cv::Vec3b pixel = frameHSV.at<cv::Vec3b>(y, x);
@@ -483,63 +483,63 @@ void detectObject() {
 				if (pixel[0] > maxS) { minH = pixel[1]; }
 				if (pixel[0] < minV) { minH = pixel[2]; }
 				if (pixel[0] > maxV) { minH = pixel[2]; }
-//				pixelsH.push_back(pixel[0]);
-//				pixelsS.push_back(pixel[1]);
-//				pixelsV.push_back(pixel[2]);
+				//				pixelsH.push_back(pixel[0]);
+				//				pixelsS.push_back(pixel[1]);
+				//				pixelsV.push_back(pixel[2]);
 			}
 		}
-		rectangle( currentFrame, Point(V_WIDTH / 2 - 20, V_HEIGHT / 2 - 20), Point(V_WIDTH / 2 + 20, V_HEIGHT / 2 + 20), CV_RGB(255, 0, 0), 1);
-	//		inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
+		rectangle(currentFrame, Point(V_WIDTH / 2 - 20, V_HEIGHT / 2 - 20), Point(V_WIDTH / 2 + 20, V_HEIGHT / 2 + 20), CV_RGB(255, 0, 0), 1);
+		//		inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
 
-//			putText(currentFrame, "Umiesc obiekt na krzyzyku. Probka " + intToString(pixelsH.size()) + "/200", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
-			line(currentFrame, Point(V_WIDTH / 2 - 30, V_WIDTH / 2 - 30), Point(V_WIDTH / 2 + 30, V_WIDTH / 2 + 30), Scalar(0, 255, 0), 2);
-			line(currentFrame, Point(V_WIDTH / 2 + 30, V_WIDTH / 2 - 30), Point(V_WIDTH / 2 - 30, V_WIDTH / 2 + 30), Scalar(0, 255, 0), 2);
-
-
+		//			putText(currentFrame, "Umiesc obiekt na krzyzyku. Probka " + intToString(pixelsH.size()) + "/200", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
+		line(currentFrame, Point(V_WIDTH / 2 - 30, V_WIDTH / 2 - 30), Point(V_WIDTH / 2 + 30, V_WIDTH / 2 + 30), Scalar(0, 255, 0), 2);
+		line(currentFrame, Point(V_WIDTH / 2 + 30, V_WIDTH / 2 - 30), Point(V_WIDTH / 2 - 30, V_WIDTH / 2 + 30), Scalar(0, 255, 0), 2);
 
 
-//		}
-//		else {
-//			putText(currentFrame, "OK, pobrano probke", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
 
-			H_MIN = minH;// mean(pixelsH)[0];// -20;
-			//	if (H_MIN < 0) H_MIN = 0;
-			S_MIN = minS;// mean(pixelsS)[0];// -20;
-			//	if (S_MIN < 0) S_MIN = 0;
-			V_MIN = minV;// mean(pixelsV)[0];// -20;
-			//	if (V_MIN < 0) V_MIN = 0;
-			H_MAX = maxH;// mean(pixelsH)[0];// +20;
-			//	if (H_MAX > 255) H_MAX = 255;
-			S_MAX = maxS;// mean(pixelsS)[0];// +20;
-			//	if (S_MAX > 255) S_MAX = 255;
-			V_MAX = maxV;// mean(pixelsV)[0];// +20;
-			//	if (V_MAX > 255) V_MAX = 255;
 
-	/*		std::cout << H_MIN << std::endl;
-			std::cout << S_MIN << std::endl;
-			std::cout << V_MIN << std::endl;
-			std::cout << H_MAX << std::endl;
-			std::cout << S_MAX << std::endl;
-			std::cout << V_MAX << std::endl;
-*/
+		//		}
+		//		else {
+		//			putText(currentFrame, "OK, pobrano probke", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
 
-			setTrackbarPos("H_MIN", optionsWindow, H_MIN);
-			setTrackbarPos("S_MIN", optionsWindow, S_MIN);
-			setTrackbarPos("V_MIN", optionsWindow, V_MIN);
-			setTrackbarPos("H_MAX", optionsWindow, H_MAX);
-			setTrackbarPos("S_MAX", optionsWindow, S_MAX);
-			setTrackbarPos("V_MAX", optionsWindow, V_MAX);
+		H_MIN = minH;// mean(pixelsH)[0];// -20;
+					 //	if (H_MIN < 0) H_MIN = 0;
+		S_MIN = minS;// mean(pixelsS)[0];// -20;
+					 //	if (S_MIN < 0) S_MIN = 0;
+		V_MIN = minV;// mean(pixelsV)[0];// -20;
+					 //	if (V_MIN < 0) V_MIN = 0;
+		H_MAX = maxH;// mean(pixelsH)[0];// +20;
+					 //	if (H_MAX > 255) H_MAX = 255;
+		S_MAX = maxS;// mean(pixelsS)[0];// +20;
+					 //	if (S_MAX > 255) S_MAX = 255;
+		V_MAX = maxV;// mean(pixelsV)[0];// +20;
+					 //	if (V_MAX > 255) V_MAX = 255;
 
-			inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
-			imshow("test", frameThreshold);
-	//		isObjectDetected = true;
-			pixelsH.clear();
-			pixelsS.clear();
-			pixelsV.clear();
-	
-//	}
-//	else {
-	/*	inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
+					 /*		std::cout << H_MIN << std::endl;
+					 std::cout << S_MIN << std::endl;
+					 std::cout << V_MIN << std::endl;
+					 std::cout << H_MAX << std::endl;
+					 std::cout << S_MAX << std::endl;
+					 std::cout << V_MAX << std::endl;
+					 */
+
+		setTrackbarPos("H_MIN", optionsWindow, H_MIN);
+		setTrackbarPos("S_MIN", optionsWindow, S_MIN);
+		setTrackbarPos("V_MIN", optionsWindow, V_MIN);
+		setTrackbarPos("H_MAX", optionsWindow, H_MAX);
+		setTrackbarPos("S_MAX", optionsWindow, S_MAX);
+		setTrackbarPos("V_MAX", optionsWindow, V_MAX);
+
+		inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
+		imshow("test", frameThreshold);
+		//		isObjectDetected = true;
+		pixelsH.clear();
+		pixelsS.clear();
+		pixelsV.clear();
+
+		//	}
+		//	else {
+		/*	inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
 		imshow("test", frameThreshold);
 
 		Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
@@ -552,16 +552,16 @@ void detectObject() {
 }
 
 void handTracking() {
-	Mat hsv, threshold;
+/*	Mat hsv, threshold;
 	cvtColor(currentFrame, hsv, COLOR_BGR2HSV);
 	Scalar lowerSkin = Scalar(0, 36, 83);
 	Scalar upperSkin = Scalar(179, 151, 228);
 
-//	inRange(hsv, lowerSkin, upperSkin, threshold);
+	//	inRange(hsv, lowerSkin, upperSkin, threshold);
 	inRange(hsv, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), threshold);
 
-///*
-Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
+	///*
+	Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
 	Mat dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
 
 	erode(threshold, threshold, erodeElement);
@@ -570,18 +570,17 @@ Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
 	dilate(threshold, threshold, dilateElement);
 
 
-// */
- /*
+	 
+//	/*
 	erodeElement = getStructuringElement(MORPH_RECT, Size(6, 6));
-	//dilate with larger element so make sure object is nicely visible
 	dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
 	erode(threshold, threshold, erodeElement);
 	dilate(threshold, threshold, dilateElement);
-//*/
-
+	*/
+	Mat temp, threshold = applyMask();
 	std::vector< std::vector<Point> > contours;
 	std::vector<Vec4i> hierarchy;
-	Mat temp;
+
 	threshold.copyTo(temp);
 	findContours(temp, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
 
@@ -596,8 +595,9 @@ Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
 	float r;
 	float maxR = 0;
 	vector<Point> maxContours;
-	
+
 	if (numObjects > 0) {
+		// /*
 		for (int i = 0; i >= 0; i = hierarchy[i][0]) {
 			minEnclosingCircle(contours[i], c, r);
 			if (r > maxR) {
@@ -608,74 +608,100 @@ Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
 		if (maxR > 0) {
 			detectFingest(maxContours, c, r, threshold);
 		}
-
-//			Moments moment = moments((cv::Mat)contours[i]);
-//			double area = moment.m00;
-//			if (maxArea < area) {
-//				maxArea = area;
-//				max = moment;
-//			}
-//		}
-//
-//		double area = max.m00;
-//
-//		if (area > MIN_OBJECT_AREA && area < MAX_OBJECT_AREA) {
-//			x = max.m10 / area;
-//			y = max.m01 / area;
-//			circle(currentFrame, Point(x, y), 30, Scalar(0, 255, 0), 1);
-//		}
+		// *//
+		/*
+		for (int index = 0; index >= 0; index = hierarchy[index][0]) {
+			Moments moment = moments((cv::Mat)contours[index]);
+			double area = moment.m00;
+			if (maxArea < area) {
+				maxArea = area;
+				max = moment;
+			}
+		}
+		
+				double area = max.m00;
+		
+				if (area > MIN_OBJECT_AREA && area < MAX_OBJECT_AREA) {
+					x = max.m10 / area;
+					y = max.m01 / area;
+					circle(currentFrame, Point(x, y), 30, Scalar(0, 255, 0), 1);
+				}
+				*/
 	}
 	imshow("prev", threshold);
 }
 
-void detectFingest( vector<Point> contours, Point2f c, float r, Mat threshold) {
+Mat applyMask() {
+	Mat HSV, threshold;
+	cvtColor(currentFrame, HSV, COLOR_BGR2HSV);
+	inRange(HSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), threshold);
 
-//	cv::minEnclosingCircle(contours, c, r);
+	Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
+	//dilate with larger element so make sure object is nicely visible
+	Mat dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
+
+	erode(threshold, threshold, erodeElement);
+
+
+
+	dilate(threshold, threshold, dilateElement);
+	erode(threshold, threshold, erodeElement);
+	dilate(threshold, threshold, dilateElement);
+	return threshold;
+}
+
+void detectFingerMoments() {
+
+}
+
+void detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold) {
+
+	//	cv::minEnclosingCircle(contours, c, r);
 	// srodek 0r
 	Vec3b lastColor, currentColor;
-	Scalar blue = Scalar( 255, 0, 0);
+	Scalar blue = Scalar(255, 0, 0);
 	Scalar green = Scalar(0, 255, 0);
 	Scalar red = Scalar(0, 0, 255);
 
 	int objectsPerLine = 0;
-//	for (int x = c.x - r; x < c.x + r; x++) {
-//		currentColor = threshold.at<cv::Vec3b>(c.y, x);
-//		if (lastColor[0] == 0.0 && currentColor[0] == 255.0) {
-//			objectsPerLine++;
-//		}
-//		lastColor = currentColor;
-//	}
-//	if (objectsPerLine > 2) {
-//		circle(currentFrame, c, r, green, 3);		
-//	}
-//	objectsPerLine = 0;
+	//	for (int x = c.x - r; x < c.x + r; x++) {
+	//		currentColor = threshold.at<cv::Vec3b>(c.y, x);
+	//		if (lastColor[0] == 0.0 && currentColor[0] == 255.0) {
+	//			objectsPerLine++;
+	//		}
+	//		lastColor = currentColor;
+	//	}
+	//	if (objectsPerLine > 2) {
+	//		circle(currentFrame, c, r, green, 3);		
+	//	}
+	//	objectsPerLine = 0;
 	// nadgarstek -0.5r
-//	for (int x = c.x - r; x < c.x + r; x++) {
-//		currentColor = threshold.at<cv::Vec3b>(c.y - r / 2, x);
-//		if (lastColor[0] == 0.0 && currentColor[0] == 255.0) {
-//			objectsPerLine++;
-//		}
-//		lastColor = currentColor;
-//	}
-//	if (objectsPerLine > 1) {
-//		circle(currentFrame, c, r, blue, 3);
-//		return;
-//	}
+	//	for (int x = c.x - r; x < c.x + r; x++) {
+	//		currentColor = threshold.at<cv::Vec3b>(c.y - r / 2, x);
+	//		if (lastColor[0] == 0.0 && currentColor[0] == 255.0) {
+	//			objectsPerLine++;
+	//		}
+	//		lastColor = currentColor;
+	//	}
+	//	if (objectsPerLine > 1) {
+	//		circle(currentFrame, c, r, blue, 3);
+	//		return;
+	//	}
 	// palce 0.5r
 	vector<Point> fingers;
 	objectsPerLine = 0;
-	Point overObject = Point(0,0);
+	Point overObject = Point(0, 0);
 	for (int x = c.x - r; x < c.x + r; x++) {
-	for (int y = c.y - r; y < c.y; y++) {
-		
+		for (int y = c.y - r; y < c.y; y++) {
+
 			currentColor = threshold.at<cv::Vec3b>(c.y - 0.75 * r, x);
 			if (lastColor[0] == 0.0 && currentColor[0] == 255.0) {
 				overObject = Point(x, y);
 				//circle(threshold, Point(x, y), 1, blue, 1);
 			}
 			if (lastColor[0] == 255.0 && currentColor[0] == 0.0 && overObject.x > 0) {
-	//			std::cout << x <<" "<< y << " " << overObject << endl;
-//				circle(currentFrame, Point( x - abs(x - overObject.x)/2, y), 1, blue, 3);
+				//			std::cout << x <<" "<< y << " " << overObject << endl;
+				//				circle(currentFrame, Point( x - abs(x - overObject.x)/2, y), 1, blue, 3);
 				circle(currentFrame, Point(x, y), 1, red, 1);
 				objectsPerLine++;
 				overObject = Point(0, 0);
@@ -683,10 +709,10 @@ void detectFingest( vector<Point> contours, Point2f c, float r, Mat threshold) {
 			lastColor = currentColor;
 		}
 		overObject = Point(0, 0);
-		lastColor = Vec3b(0,0,0);
+		lastColor = Vec3b(0, 0, 0);
 	}
 	circle(currentFrame, c, r, red, 3);
-//	line(currentFrame, Point(c.x - r, c.y - r / 2), Point(c.x * r, c.y - r / 2), blue);
+	//	line(currentFrame, Point(c.x - r, c.y - r / 2), Point(c.x * r, c.y - r / 2), blue);
 	std::cout << "Wykrylem " << objectsPerLine << " palcow" << endl;
 }
 
@@ -699,15 +725,15 @@ void detectContours()
 	vector<Vec4i> hierarchy;
 
 	threshold(frameGray, frameGray, thresholdValue, 255, thresholdType);
-	
+
 	Canny(frameGray, frameGray, thresholdValue, 255, 3);
-	
+
 	findContours(frameGray, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
 
 	temp = Mat::zeros(frameGray.size(), CV_8UC3);
 
 	RNG rng(12345);
-	for (int i = 0; i< contours.size(); i++){
+	for (int i = 0; i< contours.size(); i++) {
 		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 		drawContours(temp, contours, i, color, 2, 8, hierarchy, 0, Point());
 	}
@@ -740,14 +766,14 @@ void createOptionsWindow() {
 	createTrackbar("V_MIN", optionsWindow, &V_MIN, V_MAX, on_trackbar);
 	createTrackbar("V_MAX", optionsWindow, &V_MAX, V_MAX, on_trackbar);
 
-		Scalar lowerSkin = Scalar(0, 82, 144);
-		Scalar upperSkin = Scalar(44, 159, 211);
-		setTrackbarPos("H_MIN", optionsWindow, lowerSkin[0]);
-		setTrackbarPos("S_MIN", optionsWindow, lowerSkin[1]);
-		setTrackbarPos("V_MIN", optionsWindow, lowerSkin[2]);
-		setTrackbarPos("H_MAX", optionsWindow, upperSkin[0]);
-		setTrackbarPos("S_MAX", optionsWindow, upperSkin[1]);
-		setTrackbarPos("V_MAX", optionsWindow, upperSkin[2]);
+	Scalar lowerSkin = Scalar(0, 61, 89);
+	Scalar upperSkin = Scalar(33, 188, 187);
+	setTrackbarPos("H_MIN", optionsWindow, lowerSkin[0]);
+	setTrackbarPos("S_MIN", optionsWindow, lowerSkin[1]);
+	setTrackbarPos("V_MIN", optionsWindow, lowerSkin[2]);
+	setTrackbarPos("H_MAX", optionsWindow, upperSkin[0]);
+	setTrackbarPos("S_MAX", optionsWindow, upperSkin[1]);
+	setTrackbarPos("V_MAX", optionsWindow, upperSkin[2]);
 
 }
 
@@ -774,7 +800,7 @@ void runVideo() {
 	VideoCapture capture(0);
 	if (!capture.isOpened()) {
 		cerr << "Nie udalo sie otworzyc strumienia video" << endl;
-		exit( EXIT_FAILURE );
+		exit(EXIT_FAILURE);
 	}
 
 	capture.set(CV_CAP_PROP_FRAME_WIDTH, V_WIDTH);
