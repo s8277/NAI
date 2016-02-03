@@ -42,11 +42,8 @@ int thresholdType = 3;
 
 // function declarations
 void optionChanged(int status, void* data) {};
-		void thresh_callback(int, void*);
 void applyOption();
 void faceDetect();
-void objectDetect();
-void drawObject(int x, int y, Mat &frame);
 void on_trackbar(int, void*) {}
 void drawHandPlace();
 void objectDetectMog2();
@@ -54,69 +51,59 @@ void skinMask();
 void colorTest();
 void newHandTracking();
 
-
-		std::string intToString(int n);
+		
 		const int MAX_NUM_OBJECTS = 30;
 		const int MIN_OBJECT_AREA = 20 * 20;
 		const int MAX_OBJECT_AREA = 200 * 200;
 		bool isObjectDetected = false;
 
 
+		void detectContours();
+		void detectObject();
+		void substractMove() {};
+		void colorDetect() {};
+		void showMenu() {};
+		void handTracking();
+
+
 void applyOption() {
-	//	objectDetectMog2();
-	Mat thresh, erodeElement, dilateElement, mask, hsv;
-	Scalar lowerSkin = Scalar(0, 20, 127);
-	Scalar upperSkin = Scalar(23, 113, 255);
 
 	switch (selectedOption) {
-	case 1:
-		cvtColor(currentFrame, currentFrame, CV_BGR2HSV);
-		//threshold(currentFrame, currentFrame, thresholdValue, 255, thresholdType);
-		inRange(currentFrame, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), currentFrame);
-		//cvtColor(currentFrame, currentFrame, CV_BGR2GRAY);
-		//		threshold(currentFrame, currentFrame, thresholdValue, 255, thresholdType);
+	case 1: // object contours
+		detectContours();
 		break;
-	case 2:
-		cvtColor(currentFrame, currentFrame, CV_BGR2HSV_FULL);
-		inRange(currentFrame, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), currentFrame);
-		//		erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));		
-		//		dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
-		//		erode(currentFrame, currentFrame, erodeElement);
-		//		dilate(currentFrame, currentFrame, dilateElement);
-
-
+	case 2: // detect object
+		detectObject();
 		break;
-	case 3: // threshold
-		threshold(currentFrame, currentFrame, thresholdValue, 255, thresholdType);
-		cvtColor(currentFrame, currentFrame, CV_BGR2HSV_FULL);
-		inRange(currentFrame, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), currentFrame);
+	case 3: // movement substraction
+		substractMove();
 		break;
-	case 4: // kontury
-			//	thresh_callback(0, 0);
-		break;
-	case 5:
-		objectDetect();
-		break;
-	case 6:
-		objectDetectMog2();
-		break;
-	case 7:
-		newHandTracking();
-		break;
-	case 8:
+	case 4: // face detection
 		faceDetect();
 		break;
-	case 9:
-		skinMask();
+	case 5: // shirt color detect
+		colorDetect();
 		break;
 	default:
-		//	colorTest();
-		newHandTracking();
-		//drawHandPlace();
+		//showMenu();
+		//detectObject();
+		handTracking();
 		break;
 	}
 
 }
+
+
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////
 
 std::vector< Vec3b > pixelsH;
 std::vector< Vec3b > pixelsS;
@@ -447,7 +434,7 @@ void drawHandPlace2() {
 		}
 		ellipse(currentFrame, Point(handPoints[i].x, handPoints[i].y), i > 0 ? Size(20, 20) : Size(30, 30), 0, 0, 360, colorMatch ? green : red, 2, 8);
 
-		putText(currentFrame, intToString(pixel[0]) + "," + intToString(pixel[1]) + "," + intToString(pixel[2]), Point(handPoints[i].x - 10, handPoints[i].y + 20), 2, 1, pixel, 1, 4);
+		putText(currentFrame, to_string(pixel[0]) + "," + to_string(pixel[1]) + "," + to_string(pixel[2]), Point(handPoints[i].x - 10, handPoints[i].y + 20), 2, 1, pixel, 1, 4);
 
 
 
@@ -459,17 +446,17 @@ void drawHandPlace2() {
 
 }
 
-void objectDetect() {
+void detectObject() {
 	Mat frameHSV;
 	Mat frameThreshold;
 
 	threshold(currentFrame, currentFrame, 180, 255, thresholdType);
 
 	cvtColor(currentFrame, frameHSV, COLOR_BGR2HSV);
-
+	int minH = 179, maxH = 0, minS = 255, maxS = 0, minV = 255, maxV = 0;
 	if (!isObjectDetected) {
 
-		if (pixelsH.size() < 200) {
+//		if (pixelsH.size() < 200) {
 
 			/* area pipe
 			std::vector<Point> contours;
@@ -483,45 +470,56 @@ void objectDetect() {
 			*/
 
 
+//		int minH = 179, maxH = 0, minS = 255, maxS = 0, minV = 255, maxV = 0;
+			
+		for (int x = V_WIDTH / 2 - 20; x < V_WIDTH / 2 + 20; x++) {
+			for (int y = V_HEIGHT / 2 - 20; y < V_HEIGHT / 2 + 20; y++) {
+				cv::Vec3b pixel = frameHSV.at<cv::Vec3b>(y, x);
+				if (pixel[0] < minH) { minH = pixel[0]; }
+				if (pixel[0] > maxH) { maxH = pixel[0]; }
+				if (pixel[0] < minS) { minH = pixel[1]; }
+				if (pixel[0] > maxS) { minH = pixel[1]; }
+				if (pixel[0] < minV) { minH = pixel[2]; }
+				if (pixel[0] > maxV) { minH = pixel[2]; }
+//				pixelsH.push_back(pixel[0]);
+//				pixelsS.push_back(pixel[1]);
+//				pixelsV.push_back(pixel[2]);
+			}
+		}
+		rectangle( currentFrame, Point(V_WIDTH / 2 - 20, V_HEIGHT / 2 - 20), Point(V_WIDTH / 2 + 20, V_HEIGHT / 2 + 20), CV_RGB(255, 0, 0), 1);
+	//		inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
 
-			cv::Vec3b pixel = frameHSV.at<cv::Vec3b>(V_WIDTH / 2, V_HEIGHT / 2);
-
-			pixelsH.push_back(pixel[0]);
-			pixelsS.push_back(pixel[1]);
-			pixelsV.push_back(pixel[2]);
-			inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
-
-			putText(currentFrame, "Umiesc obiekt na krzyzyku. Probka " + intToString(pixelsH.size()) + "/200", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
+//			putText(currentFrame, "Umiesc obiekt na krzyzyku. Probka " + intToString(pixelsH.size()) + "/200", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
 			line(currentFrame, Point(V_WIDTH / 2 - 30, V_WIDTH / 2 - 30), Point(V_WIDTH / 2 + 30, V_WIDTH / 2 + 30), Scalar(0, 255, 0), 2);
 			line(currentFrame, Point(V_WIDTH / 2 + 30, V_WIDTH / 2 - 30), Point(V_WIDTH / 2 - 30, V_WIDTH / 2 + 30), Scalar(0, 255, 0), 2);
 
 
 
 
-		}
-		else {
-			putText(currentFrame, "OK, pobrano probke", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
+//		}
+//		else {
+//			putText(currentFrame, "OK, pobrano probke", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
 
-			H_MIN = mean(pixelsH)[0] - 20;
+			H_MIN = minH;// mean(pixelsH)[0];// -20;
 			//	if (H_MIN < 0) H_MIN = 0;
-			S_MIN = mean(pixelsS)[0] - 20;
+			S_MIN = minS;// mean(pixelsS)[0];// -20;
 			//	if (S_MIN < 0) S_MIN = 0;
-			V_MIN = mean(pixelsV)[0] - 20;
+			V_MIN = minV;// mean(pixelsV)[0];// -20;
 			//	if (V_MIN < 0) V_MIN = 0;
-			H_MAX = mean(pixelsH)[0] + 20;
+			H_MAX = maxH;// mean(pixelsH)[0];// +20;
 			//	if (H_MAX > 255) H_MAX = 255;
-			S_MAX = mean(pixelsS)[0] + 20;
+			S_MAX = maxS;// mean(pixelsS)[0];// +20;
 			//	if (S_MAX > 255) S_MAX = 255;
-			V_MAX = mean(pixelsV)[0] + 20;
+			V_MAX = maxV;// mean(pixelsV)[0];// +20;
 			//	if (V_MAX > 255) V_MAX = 255;
 
-			std::cout << H_MIN << std::endl;
+	/*		std::cout << H_MIN << std::endl;
 			std::cout << S_MIN << std::endl;
 			std::cout << V_MIN << std::endl;
 			std::cout << H_MAX << std::endl;
 			std::cout << S_MAX << std::endl;
 			std::cout << V_MAX << std::endl;
-
+*/
 
 			setTrackbarPos("H_MIN", optionsWindow, H_MIN);
 			setTrackbarPos("S_MIN", optionsWindow, S_MIN);
@@ -532,263 +530,157 @@ void objectDetect() {
 
 			inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
 			imshow("test", frameThreshold);
-			isObjectDetected = true;
+	//		isObjectDetected = true;
 			pixelsH.clear();
 			pixelsS.clear();
 			pixelsV.clear();
-		}
-	}
-	else {
-		inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
+	
+//	}
+//	else {
+	/*	inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameThreshold);
 		imshow("test", frameThreshold);
 
 		Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
 		//dilate with larger element so make sure object is nicely visible
 		Mat dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
-
+		*/
 
 	}
-	/*
 
-	Mat frameHSV;
-	Mat threshold;
-	cvtColor(currentFrame, frameHSV, COLOR_BGR2HSV);
-	inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), threshold);
+}
+
+void handTracking() {
+	Mat hsv, threshold;
+	cvtColor(currentFrame, hsv, COLOR_BGR2HSV);
+	inRange(hsv, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), threshold);
 
 	Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
-	//dilate with larger element so make sure object is nicely visible
 	Mat dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
 
 	erode(threshold, threshold, erodeElement);
+	dilate(threshold, threshold, dilateElement);
 	erode(threshold, threshold, erodeElement);
-
-
 	dilate(threshold, threshold, dilateElement);
-	dilate(threshold, threshold, dilateElement);
-
-	//	threshold.copyTo(currentFrame);
 
 	std::vector< std::vector<Point> > contours;
 	std::vector<Vec4i> hierarchy;
-
 	findContours(threshold, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
 
-	double refArea = 0;
 	bool objectFound = false;
-	int x, y;
-	if ( hierarchy.size() > 0) {
-
 	int numObjects = hierarchy.size();
-	//if number of objects greater than MAX_NUM_OBJECTS we have a noisy filter
-	if (numObjects < MAX_NUM_OBJECTS) {
-	for (int i = 0; i >= 0; i = hierarchy[i][0]) {
-	Moments moment = moments((cv::Mat)contours[i]);
-	double area = moment.m00;
+	Moments max;
+	double maxArea = 0;
+	int x, y;
+	int MIN_OBJECT_AREA = 20 * 20;
+	int MAX_OBJECT_AREA = 50 * 50;
+	if (numObjects > 0) {
+		for (int i = 0; i >= 0; i = hierarchy[i][0]) {
+			Moments moment = moments((cv::Mat)contours[i]);
+			double area = moment.m00;
+			if (maxArea < area) {
+				maxArea = area;
+				max = moment;
+			}
+		}
 
-	if (area>MIN_OBJECT_AREA && area<MAX_OBJECT_AREA && area>refArea) {
-	x = moment.m10 / area;
-	y = moment.m01 / area;
-	objectFound = true;
-	refArea = area;
+		double area = max.m00;
+
+		//if (area>MIN_OBJECT_AREA && area<MAX_OBJECT_AREA) {
+			x = max.m10 / area;
+			y = max.m01 / area;
+		//	objectFound = true;
+			imshow("prev", threshold);
+			circle(currentFrame, Point(x, y), 30, Scalar(0, 255, 0), 1);
+	//	}
+	//	else objectFound = false;
+
+
+		//		}
+		//let user know you found an object
+//		if (objectFound == true) {
+//			circle(currentFrame, Point(x, y), 30, Scalar(0, 255, 0), 1);
+//		}
+
+		//}
+		//	else putText(cameraFeed, "TOO MUCH NOISE! ADJUST FILTER", Point(0, 50), 1, 2, Scalar(0, 0, 255), 2);
 	}
-	else objectFound = false;
-
-	}
-
-	if (objectFound == true) {
-	putText(currentFrame, "Tracking Object", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
-	//draw object location on screen
-	drawObject(x, y, currentFrame);
-	}
-
-	}
-
-	}
-	*/
-	//threshold.copyTo(currentFrame);
-
 }
 
-std::string intToString(int n) {
-	std::stringstream ss;
-	ss << n;
-	return ss.str();
-}
-
-void drawObject(int x, int y, Mat &frame) {
-
-	//use some of the openCV drawing functions to draw crosshairs
-	//on your tracked image!
-
-	//UPDATE:JUNE 18TH, 2013
-	//added 'if' and 'else' statements to prevent
-	//memory errors from writing off the screen (ie. (-25,-25) is not within the window!)
-
-	circle(frame, Point(x, y), 20, Scalar(0, 255, 0), 2);
-	if (y - 25>0)
-		line(frame, Point(x, y), Point(x, y - 25), Scalar(0, 255, 0), 2);
-	else line(frame, Point(x, y), Point(x, 0), Scalar(0, 255, 0), 2);
-	if (y + 25<500)
-		line(frame, Point(x, y), Point(x, y + 25), Scalar(0, 255, 0), 2);
-	else line(frame, Point(x, y), Point(x, 500), Scalar(0, 255, 0), 2);
-	if (x - 25>0)
-		line(frame, Point(x, y), Point(x - 25, y), Scalar(0, 255, 0), 2);
-	else line(frame, Point(x, y), Point(0, y), Scalar(0, 255, 0), 2);
-	if (x + 25<500)
-		line(frame, Point(x, y), Point(x + 25, y), Scalar(0, 255, 0), 2);
-	else line(frame, Point(x, y), Point(500, y), Scalar(0, 255, 0), 2);
-
-	putText(frame, intToString(x) + "," + intToString(y), Point(x, y + 30), 1, 1, Scalar(0, 255, 0), 2);
-
-}
-
-void thresh_callback(int, void*)
+void detectContours()
 {
-	Mat frameCanny, frameGray, frameHSV;
-	//	cvtColor(currentFrame, frameGray, CV_BGR2GRAY);
+	Mat temp, frameGray, frameHSV;
+	cvtColor(currentFrame, frameGray, CV_BGR2GRAY);
 
-	//	cvtColor(currentFrame, frameHSV, COLOR_BGR2HSV);
+	vector<vector<Point> > contours;
+	vector<Vec4i> hierarchy;
 
-	//	inRange(frameHSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), frameGray);
-	//	imshow("hsv", frameGray);
-
-	std::vector<std::vector<Point> > contours;
-	std::vector<Vec4i> hierarchy;
 	threshold(frameGray, frameGray, thresholdValue, 255, thresholdType);
-	/// Detect edges using canny
-	Canny(frameGray, frameGray, thresholdValue, thresholdValue * 2, 3);
-	/// Find contours
+	
+	Canny(frameGray, frameGray, thresholdValue, 255, 3);
+	
 	findContours(frameGray, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
 
-	/// Draw contours
-	Mat drawing = Mat::zeros(frameGray.size(), CV_8UC3);
+	temp = Mat::zeros(frameGray.size(), CV_8UC3);
 
-	//	Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-	//	drawContours(drawing, contours, contourSelected, color, 2, 8, hierarchy, 0, Point());
-	for (int i = 0; i< contours.size(); i++)
-	{
-		//Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-		Scalar color(255, 255, 255);
-		drawContours(drawing, contours, i, color, 2, 8, hierarchy, 0, Point());
+	RNG rng(12345);
+	for (int i = 0; i< contours.size(); i++){
+		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+		drawContours(temp, contours, i, color, 2, 8, hierarchy, 0, Point());
 	}
-	drawing.copyTo(currentFrame);
-	/// Show in a window
-	//	namedWindow("Contours", WINDOW_AUTOSIZE);
-	//	imshow("Contours", drawing);
+	currentFrame = temp;
 }
 
 
 void createPreviewWindow() {
-	namedWindow(previewWindow, CV_WINDOW_AUTOSIZE);
+	namedWindow(previewWindow, CV_WINDOW_NORMAL);
 }
 
 void createOptionsWindow() {
 	namedWindow(optionsWindow, CV_WINDOW_NORMAL);
 
+	char TrackbarName[50];
+	sprintf_s(TrackbarName, "H_MIN", H_MIN);
+	sprintf_s(TrackbarName, "H_MAX", H_MAX);
+	sprintf_s(TrackbarName, "S_MIN", S_MIN);
+	sprintf_s(TrackbarName, "S_MAX", S_MAX);
+	sprintf_s(TrackbarName, "V_MIN", V_MIN);
+	sprintf_s(TrackbarName, "V_MAX", V_MAX);
 
-	createTrackbar("Option", optionsWindow, &selectedOption, 7, optionChanged);
-
-	//	switch (selectedOption) {
-	//		case 3:
-	//		case 4:
+	createTrackbar("Opcja", optionsWindow, &selectedOption, 5, optionChanged);
 	createTrackbar("Threshold", optionsWindow, &thresholdValue, 255);
 	createTrackbar("ThresholdType", optionsWindow, &thresholdType, 4);
-	//	break;
-	//		case 5:
-	//		case 6:
-	//		case 7:
-	// /*
 	createTrackbar("H_MIN", optionsWindow, &H_MIN, H_MAX, on_trackbar);
 	createTrackbar("H_MAX", optionsWindow, &H_MAX, H_MAX, on_trackbar);
 	createTrackbar("S_MIN", optionsWindow, &S_MIN, S_MAX, on_trackbar);
 	createTrackbar("S_MAX", optionsWindow, &S_MAX, S_MAX, on_trackbar);
 	createTrackbar("V_MIN", optionsWindow, &V_MIN, V_MAX, on_trackbar);
 	createTrackbar("V_MAX", optionsWindow, &V_MAX, V_MAX, on_trackbar);
-	// */
-	//			break;
-	//	}
 
 }
 
 void faceDetect() {
+	Mat frameGray, foundFace;
+	vector<Rect> found;
+	cvtColor(currentFrame, frameGray, CV_BGR2GRAY);
 
-
-	Mat prev;
-
-	//	cvtColor(currentFrame, gray, CV_BGR2GRAY);
-	// Find the faces in the frame:
-	//	std::vector< Rect_<int> > faces;
-
-	int groundThreshold = 2;
-	double scaleStep = 1.1;
-	Size minimalObjectSize(80, 80);
-	Size maximalObjectSize(300, 300);
-	std::vector<Rect> found;
-	currentFrame.copyTo(prev);
-	//	haar_cascade.detectMultiScale(gray, faces);
-	Mat image_grey;
-
-	cvtColor(currentFrame, image_grey, CV_BGR2GRAY);
-
-	// Detect faces
-	haar_cascade.detectMultiScale(image_grey, found);// , scaleStep, groundThreshold, 0, minimalObjectSize, maximalObjectSize);
-													 /*
-													 if (found.size() > 0) {
-													 for (int i = 0; i <= 2; i++) {
-													 rectangle(prev, found[i].br(), found[i].tl(), Scalar(0, 0, 0), 1, 8, 0);
-
-													 }
-													 }
-													 // */
-													 // /*
+	haar_cascade.detectMultiScale(frameGray, found);
 	for (int i = 0; i < found.size(); i++) {
-		// Process face by face:
 		Rect face_i = found[i];
-		// Crop the face from the image. So simple with OpenCV C++:
-		Mat face = image_grey(face_i);
-		// Resizing the face is necessary for Eigenfaces and Fisherfaces. You can easily
-		// verify this, by reading through the face recognition tutorial coming with OpenCV.
-		// Resizing IS NOT NEEDED for Local Binary Patterns Histograms, so preparing the
-		// input data really depends on the algorithm used.
-		//
-		// I strongly encourage you to play around with the algorithms. See which work best
-		// in your scenario, LBPH should always be a contender for robust face recognition.
-		//
-		// Since I am showing the Fisherfaces algorithm here, I also show how to resize the
-		// face you have just found:
-		Mat face_resized;
-		cv::resize(face, face_resized, Size(image_grey.cols, image_grey.rows), 1.0, 1.0, INTER_CUBIC);
-
-		// And finally write all we've found out to the original image!
-		// First of all draw a green rectangle around the detected face:
-		rectangle(currentFrame, face_i, CV_RGB(0, 255, 0), 1);
-
+		rectangle(currentFrame, face_i, CV_RGB(255, 0, 0), 1);
 	}
-	// */
-
-	//	imshow("wooohooo", prev);
-
-
-
 }
 
-void optionChanged(int status, void* data) {
-	isObjectDetected = false;
-	//	destroyWindow(optionsWindow);
-	//	createOptionsWindow();
-}
 
 void init() {
 	haar_cascade.load("../data/haarcascade_frontalface_alt.xml");
 	createOptionsWindow();
 	createPreviewWindow();
-
 }
 
 void runVideo() {
 	VideoCapture capture(0);
 	if (!capture.isOpened()) {
-		cerr << "Nie udalo sie otworzyc strumienia" << endl;
+		cerr << "Nie udalo sie otworzyc strumienia video" << endl;
 		exit( EXIT_FAILURE );
 	}
 
@@ -798,27 +690,17 @@ void runVideo() {
 	while (true) {
 		capture >> currentFrame;
 		flip(currentFrame, currentFrame, 1);
+		handTracking();
 		applyOption();
 		imshow(previewWindow, currentFrame);
-		int k = waitKey(33);
-		if (k >= 1048603) break;
+		if (waitKey(33) == 1048603) break;
 	}
 }
 
 int main(int argc, char *argv[]) {
 
 	init();
-
 	runVideo();
-	VideoCapture input(0);
-
-	//	if (!capture)
-	//	{
-	//		printf("!!! Failed cvCaptureFromCAM\n");
-	//		return 1;
-	//	}
-
-
 
 	return EXIT_SUCCESS;
 
