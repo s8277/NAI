@@ -146,7 +146,7 @@ Mat substractMove(Mat currentFrame) {
 
 
 Mat detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold, Mat currentFrame) {
-	Vec3b lastColor, currentColor;
+	Vec3b lastColor, currentColor = Vec3b(100,100,100);
 	Scalar blue = Scalar(255, 0, 0);
 	Scalar green = Scalar(0, 255, 0);
 	Scalar red = Scalar(0, 0, 255);
@@ -172,7 +172,7 @@ Mat detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold, Mat
 	vector<int> line;
 	Point overObject = Point(0, 0);
 
-	for (int y = c.y - r; y < c.y - 0.5*r; y += 10) {
+	for (int y = c.y - 0.75 * r; y < c.y - 0.25*r; y += 10) {
 		for (int x = c.x - r; x < c.x + r; x++) {
 			currentColor = threshold.at<cv::Vec3b>(y, x);
 			if (lastColor[0] == 0 && currentColor[0] == 255) {
@@ -183,7 +183,7 @@ Mat detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold, Mat
 				overObject = Point(0, 0);
 			}
 			lastColor = currentColor;
-
+circle(currentFrame, Point(x, y), 1, Scalar(0, 0, 255));
 		}
 		line.push_back(objectsPerLine);
 
@@ -191,29 +191,78 @@ Mat detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold, Mat
 		overObject = Point(0, 0);
 		lastColor = Vec3b(0, 0, 0);
 	}
-	int fingersCount = floor(mean(line)[0] + 0.5);
+	int fingersCount = floor(mean(line)[0]/3);
 	
 	if (fingersCount > 0 && fingersCount < 6) {
-		std::cout << "Wykrylem " << fingersCount << " palcow" << endl;
+		putText(currentFrame, to_string(fingersCount), Point(0, 50), 5, 2, Scalar(0, 0, 255), 2);
 		selectedOption = fingersCount;
 	}
 
 	return currentFrame;
 }
 
+Mat handTracking2(Mat currentFrame) {
+// /*	
+	Mat temp;
+	currentFrame.copyTo(temp);
+	inRange(temp, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), temp);
+	Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
+	Mat dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
+	erode(temp, temp, erodeElement);
+
+	dilate(temp, temp, dilateElement);
+	erode(temp, temp, erodeElement);
+	dilate(temp, temp, dilateElement);
+
+	std::vector< std::vector<Point> > contours;
+	std::vector<Vec4i> hierarchy;
+	Mat tmp = temp.clone();
+//	imshow("Kolor", temp);
+	findContours(tmp, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	bool objectFound = false;
+	int numObjects = hierarchy.size();
+	Moments max;
+	double maxArea = 0;
+	int x, y;
+	int MIN_OBJECT_AREA = 20 * 20;
+	int MAX_OBJECT_AREA = 50 * 50;
+	Point2f c, maxC;
+	float r;
+	float maxR = 0;
+	vector<Point> maxContours;
+
+	if (numObjects > 0) {
+		for (int i = 0; i >= 0; i = hierarchy[i][0]) {
+			minEnclosingCircle(contours[i], c, r);
+			if (r > maxR) {
+				maxR = r;
+				maxContours = contours[i];
+				maxC = c;
+			}
+		}
+		if (maxR > 150 ) {
+			circle(currentFrame, maxC, maxR, Scalar(0, 255, 0), 3);
+			currentFrame = detectFingest(maxContours, maxC, maxR, temp, currentFrame);
+		}
+
+	}
+	return currentFrame;
+}
 
 Mat handTracking(Mat currentFrame) {
+	return handTracking2(currentFrame);
+
 
 	Mat frame2;
 	RNG rng(12345);
 	currentFrame.copyTo(frame2);
 
-	mog2->apply(frame2, frame2, -1);
+	mog2->apply(frame2, frame2, -0.009);
 
 	Mat erodeElement = getStructuringElement(MORPH_RECT, Size(2, 2));
 	Mat dilateElement = getStructuringElement(MORPH_RECT, Size(5, 5));
-
-	erode(frame2, frame2, erodeElement);
+		
+	erode(frame2, frame2, dilateElement);
 	dilate(frame2, frame2, dilateElement);
 	erode(frame2, frame2, erodeElement);
 	dilate(frame2, frame2, dilateElement);
@@ -253,12 +302,13 @@ Mat handTracking(Mat currentFrame) {
 			}
 		}
 		if (maxR > 100 && maxR < 200) {
-			circle(currentFrame, c, r, Scalar(255, 0, 0), 3);
+			cout << maxR << endl;
+			circle(currentFrame, c, r, Scalar(0, 255, 0), 3);
 			currentFrame = detectFingest(maxContours, maxC, maxR, frame2, currentFrame);
 		}
 
 	}
-	imshow("F2", frame2);
+	imshow("handTracking", frame2);
 	return currentFrame;
 }
 
@@ -292,9 +342,8 @@ void createOptionsWindow() {
 	Scalar lowerSkin = Scalar(0, 15, 103);
 	Scalar upperSkin = Scalar(255, 114, 188);
 
-	//	Scalar lowerSkin = Scalar(63, 24, 124);
-	//	Scalar upperSkin = Scalar(200, 96, 200);
-
+	lowerSkin = Scalar(62,79,139); //0,61,122
+	upperSkin = Scalar(135,237,214);// 105 161 188
 
 	setTrackbarPos("H_MIN", optionsWindow, lowerSkin[0]);
 	setTrackbarPos("S_MIN", optionsWindow, lowerSkin[1]);
@@ -321,8 +370,8 @@ Mat faceDetect(Mat currentFrame) {
 
 void init() {
 	haarCascadeFace.load("../data/haarcascade_frontalface_alt.xml");
-	haarCascadeHand.load("../data/haarcascade_hand.xml");
-	mog2 = createBackgroundSubtractorMOG2();
+//	haarCascadeHand.load("../data/haarcascade_hand.xml");
+	mog2 = createBackgroundSubtractorKNN();
 	createOptionsWindow();
 	createPreviewWindow();
 }
@@ -343,6 +392,7 @@ void runVideo() {
 		temp = handTracking(currentFrame.clone());
 		currentFrame = applyOption(currentFrame.clone());
 		imshow(previewWindow, currentFrame);
+		imshow("Palce", temp);
 		if (waitKey(33) == 1048603) break;
 	}
 }
