@@ -64,7 +64,7 @@ void substractMove() {};
 void colorDetect() {};
 void showMenu() {};
 void handTracking();
-void detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold);
+void detectFingest(vector<Point> contours, Point2f c, float r, Mat &threshold);
 Mat applyMask();
 
 void applyOption() {
@@ -552,7 +552,7 @@ void detectObject() {
 }
 
 void handTracking() {
-/*	Mat hsv, threshold;
+	/*	Mat hsv, threshold;
 	cvtColor(currentFrame, hsv, COLOR_BGR2HSV);
 	Scalar lowerSkin = Scalar(0, 36, 83);
 	Scalar upperSkin = Scalar(179, 151, 228);
@@ -570,8 +570,8 @@ void handTracking() {
 	dilate(threshold, threshold, dilateElement);
 
 
-	 
-//	/*
+
+	//	/*
 	erodeElement = getStructuringElement(MORPH_RECT, Size(6, 6));
 	dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
 	erode(threshold, threshold, erodeElement);
@@ -591,7 +591,7 @@ void handTracking() {
 	int x, y;
 	int MIN_OBJECT_AREA = 20 * 20;
 	int MAX_OBJECT_AREA = 50 * 50;
-	Point2f c;
+	Point2f c, maxC;
 	float r;
 	float maxR = 0;
 	vector<Point> maxContours;
@@ -603,30 +603,31 @@ void handTracking() {
 			if (r > maxR) {
 				maxR = r;
 				maxContours = contours[i];
+				maxC = c;
 			}
 		}
-		if (maxR > 0) {
-			detectFingest(maxContours, c, r, threshold);
+		if ( maxR > 50 ) {
+			detectFingest(maxContours, maxC, maxR, threshold);
 		}
 		// *//
 		/*
 		for (int index = 0; index >= 0; index = hierarchy[index][0]) {
-			Moments moment = moments((cv::Mat)contours[index]);
-			double area = moment.m00;
-			if (maxArea < area) {
-				maxArea = area;
-				max = moment;
-			}
+		Moments moment = moments((cv::Mat)contours[index]);
+		double area = moment.m00;
+		if (maxArea < area) {
+		maxArea = area;
+		max = moment;
 		}
-		
-				double area = max.m00;
-		
-				if (area > MIN_OBJECT_AREA && area < MAX_OBJECT_AREA) {
-					x = max.m10 / area;
-					y = max.m01 / area;
-					circle(currentFrame, Point(x, y), 30, Scalar(0, 255, 0), 1);
-				}
-				*/
+		}
+
+		double area = max.m00;
+
+		if (area > MIN_OBJECT_AREA && area < MAX_OBJECT_AREA) {
+		x = max.m10 / area;
+		y = max.m01 / area;
+		circle(currentFrame, Point(x, y), 30, Scalar(0, 255, 0), 1);
+		}
+		*/
 	}
 	imshow("prev", threshold);
 }
@@ -654,8 +655,7 @@ void detectFingerMoments() {
 
 }
 
-void detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold) {
-
+void detectFingest(vector<Point> contours, Point2f c, float r, Mat &threshold) {
 	//	cv::minEnclosingCircle(contours, c, r);
 	// srodek 0r
 	Vec3b lastColor, currentColor;
@@ -691,25 +691,38 @@ void detectFingest(vector<Point> contours, Point2f c, float r, Mat threshold) {
 	vector<Point> fingers;
 	objectsPerLine = 0;
 	Point overObject = Point(0, 0);
-	for (int x = c.x - r; x < c.x + r; x++) {
-		for (int y = c.y - r; y < c.y; y++) {
-
+/*	for (int y = c.y - r; y < c.y; y++) {
+		for (int x = c.x - r; x < c.x + r; x++) {
+		
 			currentColor = threshold.at<cv::Vec3b>(c.y - 0.75 * r, x);
 			if (lastColor[0] == 0.0 && currentColor[0] == 255.0) {
+				objectsPerLine++;
 				overObject = Point(x, y);
 				//circle(threshold, Point(x, y), 1, blue, 1);
 			}
 			if (lastColor[0] == 255.0 && currentColor[0] == 0.0 && overObject.x > 0) {
 				//			std::cout << x <<" "<< y << " " << overObject << endl;
-				//				circle(currentFrame, Point( x - abs(x - overObject.x)/2, y), 1, blue, 3);
-				circle(currentFrame, Point(x, y), 1, red, 1);
+				circle(currentFrame, Point( x - abs(x - overObject.x)/2, y), 1, blue, 3);
+				//circle(currentFrame, Point(x, y), 1, red, 1);
 				objectsPerLine++;
 				overObject = Point(0, 0);
 			}
 			lastColor = currentColor;
+			objectsPerLine = 0;
 		}
 		overObject = Point(0, 0);
 		lastColor = Vec3b(0, 0, 0);
+	}*/
+	int y = c.y - 0.5*r;
+	for (int x = c.x - r; x < c.x + r; x++) {
+
+		currentColor = threshold.at<cv::Vec3b>( y, x);
+	//	cout << currentColor << endl;
+			if (lastColor[0] == 0 && currentColor[0] > 0) {
+				circle(currentFrame, Point(x,y), 2, blue);
+				objectsPerLine++;
+			}
+			lastColor = currentColor;
 	}
 	circle(currentFrame, c, r, red, 3);
 	//	line(currentFrame, Point(c.x - r, c.y - r / 2), Point(c.x * r, c.y - r / 2), blue);
@@ -766,8 +779,8 @@ void createOptionsWindow() {
 	createTrackbar("V_MIN", optionsWindow, &V_MIN, V_MAX, on_trackbar);
 	createTrackbar("V_MAX", optionsWindow, &V_MAX, V_MAX, on_trackbar);
 
-	Scalar lowerSkin = Scalar(0, 61, 89);
-	Scalar upperSkin = Scalar(33, 188, 187);
+	Scalar lowerSkin = Scalar(0, 61, 81);
+	Scalar upperSkin = Scalar(202, 255, 255);
 	setTrackbarPos("H_MIN", optionsWindow, lowerSkin[0]);
 	setTrackbarPos("S_MIN", optionsWindow, lowerSkin[1]);
 	setTrackbarPos("V_MIN", optionsWindow, lowerSkin[2]);
