@@ -1,3 +1,17 @@
+#include "stdafx.h"
+
+#include "opencv2/core/utility.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <stdlib.h>
+#include <stdio.h>
+#include "opencv2/objdetect.hpp"
+#include "opencv2/video/background_segm.hpp"
+#include <sstream>
 
 // /*
 
@@ -17,10 +31,11 @@ CascadeClassifier haar_cascade;
 Mat currentFrame;
 int selectedOption = 0;
 int thresholdValue = 100;
+int thresholdType = 3;
 int contourSelected = 4;
 
-	int max_thresh = 255;
-	RNG rng(12345);
+//	int max_thresh = 255;
+//	RNG rng(12345);
 
 void optionChanged(int status, void* data);
 void thresh_callback(int, void*);
@@ -32,7 +47,7 @@ const int V_WIDTH = 640;
 const int V_HEIGHT = 480;
 
 	int H_MIN = 0;// 0; // 77
-	int H_MAX = 255;//183; //117
+	int H_MAX = 179;//183; //117
 	int S_MIN = 0;//71; //22
 	int S_MAX = 255;//176; // 62
 	int V_MIN = 0;//87; // 55
@@ -47,14 +62,21 @@ const int V_HEIGHT = 480;
 
 	bool isObjectDetected = false;
 	void objectDetectMog2();
+	void skinMask();
 
 void applyOption() {
 //	objectDetectMog2();
-	Mat thresh, erodeElement, dilateElement;
+	Mat thresh, erodeElement, dilateElement, mask, hsv;
+	Scalar lowerSkin = Scalar(0, 20, 127);
+	Scalar upperSkin = Scalar(23, 113, 255);
+
 	switch (selectedOption) {
 	case 1:
-		cvtColor(currentFrame, currentFrame, CV_BGR2GRAY);
-//		threshold(currentFrame, currentFrame, thresholdValue, 255, 0);
+		cvtColor(currentFrame, currentFrame, CV_BGR2HSV);
+		//threshold(currentFrame, currentFrame, thresholdValue, 255, thresholdType);
+		inRange(currentFrame, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), currentFrame);
+		//cvtColor(currentFrame, currentFrame, CV_BGR2GRAY);
+//		threshold(currentFrame, currentFrame, thresholdValue, 255, thresholdType);
 		break;
 	case 2:
 		cvtColor(currentFrame, currentFrame, CV_BGR2HSV_FULL);
@@ -67,12 +89,12 @@ void applyOption() {
 
 		break;
 	case 3: // threshold
-		threshold(currentFrame, currentFrame, thresholdValue, 255, 0);
+		threshold(currentFrame, currentFrame, thresholdValue, 255, thresholdType);
 		cvtColor(currentFrame, currentFrame, CV_BGR2HSV_FULL);
 //		inRange(currentFrame, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), currentFrame);
 		break;
 	case 4: // kontury
-		thresh_callback(0, 0);
+	//	thresh_callback(0, 0);
 		break;
 	case 5:
 		objectDetect();
@@ -83,11 +105,11 @@ void applyOption() {
 	case 7:
 		faceDetect();
 		break;
+	case 8:
+		skinMask();
+		break;
 	default:
 		drawHandPlace();
-		//cvtColor(currentFrame, currentFrame, CV_BGR2GRAY);
-		//threshold(currentFrame, currentFrame, thresholdValue, 255, 0);
-		//inRange(currentFrame, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), currentFrame);
 		break;
 	}
 
@@ -96,6 +118,34 @@ void applyOption() {
 std::vector< Vec3b > pixelsH;
 std::vector< Vec3b > pixelsS;
 std::vector< Vec3b > pixelsV;
+
+void skinMask() {
+	Mat thresh, erodeElement, dilateElement, mask, hsv;
+	Scalar lowerSkin = Scalar(0, 20, 127);
+	Scalar upperSkin = Scalar(23, 113, 255);
+
+	lowerSkin = Scalar(0, 36, 83);
+	upperSkin = Scalar(179, 151, 228);
+
+	cvtColor(currentFrame, hsv, COLOR_BGR2HSV);
+
+	inRange(hsv, lowerSkin, upperSkin, mask);
+
+	erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
+	dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
+	erode(mask, mask, erodeElement);
+	dilate(mask, mask, dilateElement);
+
+	bitwise_and(currentFrame, currentFrame, thresh, mask = mask);
+
+	imshow("hsv", hsv);
+	imshow("maska", mask);
+	imshow("result", thresh);
+}
+
+bool handFound = false;
+Scalar skinMin = Scalar();
+Scalar skinMax = Scalar();
 
 void objectDetectMog2() {
 
@@ -128,6 +178,83 @@ void objectDetectMog2() {
 
 void drawHandPlace() {
 	Mat frameHsv;
+	Mat thresh, erodeElement, dilateElement, mask;
+	cvtColor(currentFrame, frameHsv, CV_BGR2HSV);
+	Scalar green = Scalar(0, 255, 0);
+	Scalar red = Scalar(0, 0, 255);
+	Scalar lowerSkin = Scalar(H_MIN, S_MIN, V_MIN);
+	Scalar upperSkin = Scalar(H_MAX, S_MAX, V_MAX);
+
+	Scalar lowerWall = Scalar(18, 0, 113);
+	Scalar upperWall = Scalar(100, 56, 193);
+
+	putText(currentFrame, "Umiesc reke w wyznaczonym obszarze", Point(0, 20), 2, 1, Scalar(0, 255, 0), 2);
+	ellipse(currentFrame, Point( 450, 250 ), Size(60, 60), 0, 0, 360, green, 2, 8);
+	std::vector<Vec3b> colorPoints;
+	colorPoints.push_back(frameHsv.at<cv::Vec3b>(220, 420));
+	colorPoints.push_back(frameHsv.at<cv::Vec3b>(220, 480));
+	colorPoints.push_back(frameHsv.at<cv::Vec3b>(280, 420));
+	colorPoints.push_back(frameHsv.at<cv::Vec3b>(280, 480));
+	colorPoints.push_back(frameHsv.at<cv::Vec3b>(250, 450));
+
+	ellipse(currentFrame, Point(420, 220 ), Size(2, 2), 0, 0, 360, green, 2, 8);
+	ellipse(currentFrame, Point(480, 220 ), Size(2, 2), 0, 0, 360, green, 2, 8);
+	ellipse(currentFrame, Point(420, 280 ), Size(2, 2), 0, 0, 360, green, 2, 8);
+	ellipse(currentFrame, Point(480, 280 ), Size(2, 2), 0, 0, 360, green, 2, 8);
+	ellipse(currentFrame, Point(450, 250 ), Size(2, 2), 0, 0, 360, green, 2, 8);
+
+	for (int i = 0; i < colorPoints.size(); i++) {
+		if (i == 0) {
+			lowerSkin = colorPoints[0];
+			upperSkin = colorPoints[0];
+		}
+		else{
+			if (lowerSkin[2] > colorPoints[i][2]) {
+				lowerSkin = colorPoints[i];
+			}
+			if (upperSkin[2] < colorPoints[i][2]) {
+				upperSkin = colorPoints[i];
+			}
+		}
+	}
+
+	//lowerWall[1] = lowerSkin[1];
+	//upperWall[1] = upperSkin[1];
+
+	lowerSkin = lowerWall; 
+	upperSkin = upperWall; 
+	std::cout << lowerSkin << std::endl;
+	std::cout << upperSkin << std::endl;
+
+/*	setTrackbarPos("H_MIN", optionsWindow, lowerSkin[0]);
+	setTrackbarPos("S_MIN", optionsWindow, lowerSkin[1]);
+	setTrackbarPos("V_MIN", optionsWindow, lowerSkin[2]);
+	setTrackbarPos("H_MAX", optionsWindow, upperSkin[0]);
+	setTrackbarPos("S_MAX", optionsWindow, upperSkin[1]);
+	setTrackbarPos("V_MAX", optionsWindow, upperSkin[2]);
+*/
+//	lowerSkin = Scalar(0, 36, 83);
+//	upperSkin = Scalar(179, 151, 228);
+
+	inRange(frameHsv, lowerSkin, upperSkin, mask);
+	//inRange(frameHsv, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), mask);
+
+	erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
+	dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
+
+	erode(mask, mask, erodeElement);
+	dilate(mask, mask, dilateElement);
+
+
+	bitwise_and(currentFrame, currentFrame, thresh, mask = mask);
+
+	imshow("hsv", frameHsv);
+	imshow("maska", mask);
+	imshow("result", thresh);
+}
+
+void drawHandPlace2() {
+	Mat frameHsv;
 cvtColor(currentFrame, frameHsv, CV_BGR2HSV);
 	putText(currentFrame, "Umiesc reke w wyznaczonym obszarze", Point(0, 20), 2, 1, Scalar(0, 255, 0), 2);
 	Scalar green = Scalar(0, 255, 0);
@@ -135,11 +262,11 @@ cvtColor(currentFrame, frameHsv, CV_BGR2HSV);
 	std::vector <Point> handPoints;
 	std::vector <Vec3b> colorPoints;
 	handPoints.push_back(Point(450, 250));
-	handPoints.push_back(Point(320, 200));
-	handPoints.push_back(Point(390, 90));
-	handPoints.push_back(Point(450, 60));
-	handPoints.push_back(Point(500, 80));
-	handPoints.push_back(Point(550, 110));
+//	handPoints.push_back(Point(320, 200));
+//	handPoints.push_back(Point(390, 90));
+//	handPoints.push_back(Point(450, 60));
+//	handPoints.push_back(Point(500, 80));
+//	handPoints.push_back(Point(550, 110));
 	bool allOk = true, colorMatch = false;
 	
 //	cv::Vec3b pixel = frameHsv.at<cv::Vec3b>(handPoints[0].y, handPoints[0].x);
@@ -179,7 +306,7 @@ void objectDetect() {
 	Mat frameHSV;
 	Mat frameThreshold;
 	
-	threshold(currentFrame, currentFrame, 180, 255, 0);
+	threshold(currentFrame, currentFrame, 180, 255, thresholdType);
 	
 	cvtColor(currentFrame, frameHSV, COLOR_BGR2HSV);
 
@@ -370,7 +497,7 @@ void thresh_callback(int, void*)
 
 	std::vector<std::vector<Point> > contours;
 	std::vector<Vec4i> hierarchy;
-	threshold(frameGray, frameGray, thresholdValue, 255, 0);
+	threshold(frameGray, frameGray, thresholdValue, 255, thresholdType);
 	/// Detect edges using canny
 	Canny(frameGray, frameGray, thresholdValue, thresholdValue * 2, 3);
 	/// Find contours
@@ -407,12 +534,13 @@ void createOptionsWindow() {
 //	switch (selectedOption) {
 //		case 3:
 //		case 4:
-//	createTrackbar("Threshold", optionsWindow, &thresholdValue, 255);
+	createTrackbar("Threshold", optionsWindow, &thresholdValue, 255);
+	createTrackbar("ThresholdType", optionsWindow, &thresholdType, 4);
 //	break;
 //		case 5:
 //		case 6:
 //		case 7:
-/*
+// /*
 	createTrackbar("H_MIN", optionsWindow, &H_MIN, H_MAX, on_trackbar);
 	createTrackbar("H_MAX", optionsWindow, &H_MAX, H_MAX, on_trackbar);
 	createTrackbar("S_MIN", optionsWindow, &S_MIN, S_MAX, on_trackbar);
